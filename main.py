@@ -3,7 +3,7 @@ import cv2 as cv
 import random
 
 # cap = cv.VideoCapture('sample.mp4')
-cap = cv.VideoCapture('cars.mp4')
+cap = cv.VideoCapture('files\cars.mp4')
 
 # fgbg = cv.bgsegm.createBackgroundSubtractorMOG()
 # fgbg = cv.createBackgroundSubtractorMOG2()
