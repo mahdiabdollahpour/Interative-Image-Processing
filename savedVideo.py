@@ -5,20 +5,29 @@ from utils import Drop
 from utils import *
 from time import time
 
-# cap = cv.VideoCapture('files\sample.mp4')
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture('files\sample.mp4')
+ret, l_img = cap.read()
+l_img = cv.resize(l_img, (0, 0), fx=0.5, fy=0.5)
+shape = np.shape(l_img)
+print(shape)
+print('0 :', shape[0])
+print('1 :', shape[1])
+#
+fourcc = cv.VideoWriter_fourcc(*'XVID')
+out = cv.VideoWriter('output.avi', fourcc, 20.0, (640,360))
 
 algo = 'knn'
 
 if (algo == 'mog'):
     fgbg = cv.bgsegm.createBackgroundSubtractorMOG()
 elif (algo == 'gmg'):
-    kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3))
     fgbg = cv.bgsegm.createBackgroundSubtractorGMG()
 elif (algo == 'mog2'):
     fgbg = cv.createBackgroundSubtractorMOG2()
 else:
-    fgbg = cv.createBackgroundSubtractorKNN(history=300,dist2Threshold= 600, detectShadows=False)
+    fgbg = cv.createBackgroundSubtractorKNN()
+
+kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3))
 
 
 def separate(img):
@@ -51,27 +60,23 @@ print(np.shape(snow_Image))
 cnt = 0
 rain_size = np.shape(rain_Image)
 snow_size = np.shape(snow_Image)
-max_drop_num = 50
+max_drop_num = 20
 drop_num = 0
-max_drop_speed = 10
-min_drop_speed = 5
+max_drop_speed = 5
+min_drop_speed = 3
 drops = []
-binary = True
 melt_time_min = 6
 melt_time_max = 12
-# pool = Pool(processes=max_drop_num)
-while (True):
+
+while (cap.isOpened()):
     global added_image
     ret, l_img = cap.read()
-
+    if (not ret):
+        break
+    l_img = cv.resize(l_img, (0, 0), fx=0.5, fy=0.5)
     t = time()
     joda = separate(l_img)
     joda = cv.GaussianBlur(joda, (5, 5), 0)
-    if binary:
-        (thresh, im_bw) = cv.threshold(joda, 128, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)
-        joda = im_bw
-
-   
     lsize = np.shape(l_img)
     cnt += 1
     for dr in drops:
@@ -88,20 +93,28 @@ while (True):
             drops.remove(dr)
 
     added_image = l_img.copy()
-    for i in range(0, 20):
+    for i in range(0, 7):
         if (len(drops) >= max_drop_num):
             break
         d = Drop(0, random.randint(0, lsize[1] - snow_size[1]), min_drop_speed, max_drop_speed, snow_type,
                  random.randint(melt_time_min, melt_time_max), snow_size)
         drops.append(d)
+
     drop_num = len(drops)
     threads = []
     for d in drops:
         overlay_drop(d)
     print(time() - t)
+    out.write(added_image)
+    print(np.shape(added_image))
+
 
     cv.imshow('video', added_image)
     cv.imshow('background subtracted', joda)
     cv.waitKey(3)
 
+
+out.release()
+print('it was released')
+cap.release()
 cv.destroyAllWindows()
